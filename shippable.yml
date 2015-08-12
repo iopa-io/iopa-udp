@@ -1,0 +1,34 @@
+language: node_js
+
+node_js:
+  - 0.12
+
+notifications:
+     email:
+         on_success: change
+         on_failure: always
+
+env:
+ global:
+  - secure: BixZnNpz6XfFWNHfEyRKFxV307kt+GCEc198j+WRCPUq5Qwwo0rjdVrcq4eqeS9vdPa+xZRioHqmgoISNIFCSJWBM0KYamULZu9SdXo4l+SRcaobB2WQ9yUNGZ8vlX9CUjTIMfQRhiySMvtXtpANqilxZntq/9Wbrc6VJfOUTXjvg1VeQ9zv0Jpq0jB6gRAZ4CgofV1z1AUYbj4kT0o6khxPKn0DmjAybJYKwnir99bYr6kIMkmcywkXUgXqKlW1CAvE+7ricFs/v+7mUOdfFg/f272PibOKbc9WLn5tCdCGbKpugzUXwqXFJe/swhMqp1sWQTAQi+shfPMkL7cUFQ=
+  
+before_install:
+  - source ~/.nvm/nvm.sh && nvm install $SHIPPABLE_NODE_VERSION
+  - node --version
+
+install:
+  - npm install
+  
+script:
+  - MOCHA_FILE=shippable/testresults/mocha.xml node ./node_modules/.bin/mocha --reporter mocha-junit-reporter test
+  
+after_success:
+  - git config user.email "robot@shippable.com"
+  - git config user.name "Shippable"
+  - git config --global push.default matching
+  - git checkout $BRANCH
+  - echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" >> ~/.npmrc
+  - npm version patch --message "auto-publish %s via SHIPPABLE [ci skip] [skip ci]"
+  - git remote set-url origin ssh://git@github.com/$REPO_NAME
+  - git push
+  - npm publish

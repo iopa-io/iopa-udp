@@ -1,0 +1,54 @@
+{
+  "name": "iopa-udp",
+  "main": "src/udpServer.js",
+  "description": "Lightweight User Datagram Protocol (TCP) server and client, based on Internet of Protocols Association (IOPA) open standard",
+  "author": "IOPA",
+  "maintainers": [
+    {
+      "name": "iopa",
+      "email": "build@iopa.io"
+    }
+  ],
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iopa-source/iopa-udp.git"
+  },
+  "dependencies": {
+    "bluebird": "*",
+    "iopa": "*",
+    "iopa-common-stream": "*"
+  },
+  "keywords": [
+    "limerun",
+    "iopa",
+    "owin",
+    "middleware",
+    "node-iopa",
+    "tcp",
+    "iopa-udp",
+    "demo",
+    "mac",
+    "osx",
+    "promise",
+    "framework"
+  ],
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  ],
+  "engines": {
+    "node": ">= 0.12.0"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec test"
+  },
+  "devDependencies": {
+    "bl": "*",
+    "mocha": "^2.2.5",
+    "mocha-junit-reporter": "^1.6.1",
+    "should": "^7.0.2"
+  }
+}
