@@ -198,7 +198,7 @@ UdpClient.prototype._disconnect = function UdpClient_disconnect(channelContext, 
  * @method close
  * Close all the underlying sockets
  * 
- * @returns void;
+ * @returns {Promise()}
  * @public
  */
 UdpClient.prototype.close = function UdpClient_close() {
@@ -206,6 +206,8 @@ UdpClient.prototype.close = function UdpClient_close() {
       this._disconnect(this._connections[key], null);
   
   this._connections = {};
+  
+  return Promise.resolve(null);
 };
 
 
