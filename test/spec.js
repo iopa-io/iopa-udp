@@ -64,6 +64,7 @@ describe('#UdpServer()', function() {
         console.log("Server is on port " + server.port );
     });
     
+  
     it('client should connect and server should receive client packets', function(done) {
         server.connect("coap://127.0.0.1")
        .then(function(client){
@@ -117,10 +118,7 @@ describe('#UdpServer()', function() {
               });
             
               server3.close();
-               var context = client["server.CreateRequest"]("/", "GET");
-               context["iopa.Body"].pipe(context["server.RawStream"] );
-               context["iopa.Body"].write("Hello World");
-               return null;
+                       return null;
           });
     });
     
