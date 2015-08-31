@@ -326,7 +326,11 @@ UdpServer.prototype.createResponseRequest = function UdpServer_createResponseReq
  * @public
  */
 UdpServer.prototype.close = function UdpServer_close() {
-   return this._udp.closeAsync();
+   this._udpClient.close();
+   this._udp.close();
+   this._udpClient = undefined;
+   this._udp = undefined;
+   return Promise.resolve(null);
 };
 
 module.exports = UdpServer;

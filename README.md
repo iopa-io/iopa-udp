@@ -19,7 +19,7 @@ Makes UDP connections look to an application like a standard Request Response RE
 
 ## Status
 
-Fully working prototype include server and client.
+Fully working barebones server and client.
 
 Includes:
 

@@ -164,10 +164,9 @@ function UdpClient_CreateRequest(channelContext, path, method){
   });
   
   var that = this; 
- 
+  var ctx = context;
   context["iopa.Body"].on("finish", function(){
-     var ctx = context;
-     ctx["server.InProcess"] = true;
+      ctx["server.InProcess"] = true;
      return that._clientMessagePipeline(context).then(function(value){
          ctx["iopa.Events"].emit("server.RequestComplete", ctx);
          ctx["server.InProcess"] = false;
