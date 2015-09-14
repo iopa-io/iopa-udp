@@ -4,13 +4,13 @@
   "description": "Lightweight User Datagram Protocol (UDP) server and client, based on Internet of Protocols Alliance (IOPA) specification",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
- "maintainers": [
+  "maintainers": [
     {
       "name": "iopa",
       "email": "build@iopa.io"
     }
   ],
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/iopa-io/iopa-udp.git"
