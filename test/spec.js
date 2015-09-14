@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2015 Limerun Project Contributors
- * Portions Copyright (c) 2015 Internet of Protocols Assocation (IOPA)
-  *
+ * Copyright (c) 2015 Internet of Protocols Alliance (IOPA)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,10 +14,10 @@
  * limitations under the License.
  */
  
+
 const iopa = require('iopa')
-    , UdpServer = require('../src/udpServer.js')
-    , Promise = require('bluebird')
-    , util = require('util')
+    , udp = require('../index.js')
+     , util = require('util')
     , Events = require('events')
     , BufferList = require('bl');
     
@@ -30,25 +29,18 @@ describe('#UdpServer()', function() {
        var data = new BufferList();
         
        before(function(done){
+        
         //  serverPipeline 
-          var serverChannelApp = new iopa.App();
-          serverChannelApp.use(function(channelContext, next){
+          var app = new iopa.App();
+          app.use(function(channelContext, next){
             channelContext["server.RawStream"].on("data", function(chunk){
-               events.emit("data", chunk);
+               events.emit("test.Data", chunk);
                data.append(chunk);
             });
-             channelContext["server.RawStream"].on("end", function(){
-               events.emit("end", data);
-            });
-            return next();  
+             return next();  
           });
-          var serverPipeline = serverChannelApp.build();
-         
-          //clientChannelPipeline 
-          var clientChannelApp = new iopa.App();
-          var clientPipeline = clientChannelApp.build();
-        
-          server = new UdpServer({}, serverPipeline, clientPipeline);
+            
+          server = udp.createServer({}, app.build());
   
          if (!process.env.PORT)
           process.env.PORT = 5683;
@@ -67,17 +59,24 @@ describe('#UdpServer()', function() {
   
     it('client should connect and server should receive client packets', function(done) {
         server.connect("coap://127.0.0.1")
-       .then(function(client){
-        console.log("Client is on port " + client["server.LocalPort"]);
-        var context = client["server.CreateRequest"]("/", "GET");
-        events.on("data", function(data){
-          data.toString().should.equal('Hello World');
-          done();
-        })
-        context["iopa.Body"].pipe(context["server.RawStream"] );
-        context["iopa.Body"].write("Hello World");
-        return null;
-       })
+       .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"]);
+                events.on("test.Data", function (data) {
+                    data.toString().should.equal('Hello World');
+                    done();
+                });
+                client.fetch("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                        try{
+                        context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].write("Hello World");
+                         } catch (ex) {
+                            console.log(ex);
+                            return Promise.reject(ex);
+                        }
+                    });
+            })
     });
     
     it('server should close', function() {
@@ -87,8 +86,8 @@ describe('#UdpServer()', function() {
     it('server disconnects, client should error', function(done) {
       
           //serverPipeline 
-          var serverChannelApp = new iopa.App();
-          serverChannelApp.use(function(channelContext, next){
+          var app = new iopa.App();
+          app.use(function(channelContext, next){
               return next().then(function(){ return new Promise(function(resolve, reject){
                  channelContext["udpPacketServer.SessionClose"] = resolve;
                  channelContext["udpPacketServer.SessionError"] = reject;
@@ -96,13 +95,7 @@ describe('#UdpServer()', function() {
             });
           });
 
-          var serverPipeline = serverChannelApp.build();
-         
-          //clientChannelPipeline 
-          var clientChannelApp = new iopa.App();
-          var clientPipeline = clientChannelApp.build();
-        
-          var server3 = new UdpServer({}, serverPipeline, clientPipeline);
+          var server3 = udp.createServer(app.build());
   
          if (!process.env.PORT)
            process.env.PORT = 1883;

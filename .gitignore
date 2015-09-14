@@ -11,8 +11,6 @@ pids
 logs
 results
 testresults
-.settings
-shippable
 
 npm-debug.log
 node_modules
@@ -20,3 +18,7 @@ node_modules
 
 .DS_Store
 .c9
+
+# type definitions we mirror from github
+**/typings/**/*.d.ts
+**/typings/tsd.cached.json

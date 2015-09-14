@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2015 Limerun Project Contributors
- * Portions Copyright (c) 2015 Internet of Protocols Assocation (IOPA)
+ * Copyright (c) 2015 Internet of Protocols Alliance (IOPA)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +15,17 @@
  */
 
 const iopa = require('iopa')
-    , UdpServer = require('./src/udpServer.js')
-    , Promise = require('bluebird')
+    , udp = require('./index.js')
     , util = require('util');
 
  //  serverPipeline 
-  var serverChannelApp = new iopa.App();
-  serverChannelApp.use(function(channelContext, next){
+  var app = new iopa.App();
+  app.use(function(channelContext, next){
     channelContext["server.RawStream"].pipe(process.stdout);
     return next();  
   });
-  var serverPipeline = serverChannelApp.build();
  
-  //clientChannelPipeline 
-  var clientChannelApp = new iopa.App();
-  var clientPipeline = clientChannelApp.build();
-
-  var server = new UdpServer({}, serverPipeline, clientPipeline);
+   var server = udp.createServer(app.build());
   
  if (!process.env.PORT)
   process.env.PORT = 5683;
@@ -44,10 +37,10 @@ const iopa = require('iopa')
    })
    .then(function(client){
       console.log("Client is on port " + client["server.LocalPort"]);
-      var context = client["server.CreateRequest"]("/", "GET");
-      context["iopa.Body"].pipe(context["server.RawStream"] );
-      context["iopa.Body"].write("Hello ");
-      context["iopa.Body"].end("World\n");
-      return null;
+     console.log("Client is on port " + client["server.LocalPort"]);
+      var options = { "iopa.Body": "Hello World\n" }
+      return client.fetch("/", options, function (context) {
+        context["server.RawStream"].write(context["iopa.Body"]);
+      });
    })
    
