@@ -158,7 +158,8 @@ UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = rinfo.address + ':' + rinfo.port;
-   
+  context[SERVER.RawTransport] = this._udp;
+ 
   var response = context.response;
   response[SERVER.TLS] = context[SERVER.TLS];
   response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
@@ -166,7 +167,7 @@ UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
   response[SERVER.LocalPort] = context[SERVER.LocalPort];
   response[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, context.response));
-  context.response[SERVER.RawTransport] = this._udp;
+  response[SERVER.RawTransport] = this._udp;
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
