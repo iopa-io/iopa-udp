@@ -37,8 +37,7 @@ const iopa = require('iopa')
    })
    .then(function(client){
       console.log("Client is on port " + client["server.LocalPort"]);
-     console.log("Client is on port " + client["server.LocalPort"]);
-      var options = { "iopa.Body": "Hello World\n" }
+       var options = { "iopa.Body": "Hello World\n" }
       return client.fetch("/", options, function (context) {
         context["server.RawStream"].write(context["iopa.Body"]);
       });

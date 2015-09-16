@@ -21,11 +21,9 @@ const net = require('net'),
   dgram = require('dgram'),
 
   iopaStream = require('iopa-common-stream'),
-  iopaContextFactory = require('iopa').factory,
-  constants = require('iopa').constants,
-  IOPA = constants.IOPA,
-  SERVER = constants.SERVER
-
+  iopa = require('iopa'),
+  IOPA = iopa.constants.IOPA,
+  SERVER = iopa.constants.SERVER
 
 /* *********************************************************
  * IOPA UDP CLIENT (GENERIC)  
@@ -45,6 +43,7 @@ function UdpClient(options) {
    events.EventEmitter.call(this);
   
   this._options = options || {}; 
+  this._factory = new iopa.Factory(options);
   this._connections = {};
   }
 
@@ -61,7 +60,7 @@ util.inherits(UdpClient, events.EventEmitter);
  * @constructor
  */
 UdpClient.prototype.connect = function UdpServer_connect(urlStr){
-  var channelContext = iopaContextFactory.createRequestResponse(urlStr, "UDP-CONNECT");
+  var channelContext = this._factory.createRequestResponse(urlStr, "UDP-CONNECT");
   var channelResponse = channelContext.response;
   
   var addressType;
@@ -134,7 +133,7 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
   var channelResponse = channelContext.response;
 
   var urlStr = channelContext[SERVER.OriginalUrl] + path;
-  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+  var context = this._factory.createRequestResponse(urlStr, options);
 
   context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
@@ -148,7 +147,7 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
   response[SERVER.ParentContext] = channelResponse;
      
-  return iopaContextFactory.using(context, pipeline);
+  return context.using(pipeline);
 };
 
 /**
@@ -163,8 +162,8 @@ UdpClient.prototype._disconnect = function UdpClient_disconnect(channelContext, 
          channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
          delete this._connections[channelContext[SERVER.SessionId]];
          channelContext[SERVER.RawTransport].close();
-         iopaContextFactory.dispose(channelContext);
-     }
+         channelContext.dispose();
+      }
 }
 
 /**

@@ -15,7 +15,7 @@
  */
 
 // DEPENDENCIES
-var iopaContextFactory = require('iopa').factory;
+var iopa = require('iopa');
 var dgram = require('dgram');
 var util = require('util');
 var events = require('events');
@@ -23,9 +23,8 @@ var iopaStream = require('iopa-common-stream');
 var net = require('net');
 var UdpClient = require('./udpClient.js');
 
-const constants = require('iopa').constants,
-  IOPA = constants.IOPA,
-  SERVER = constants.SERVER
+const IOPA = iopa.constants.IOPA,
+      SERVER = iopa.constants.SERVER
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -54,6 +53,7 @@ function UdpServer(options, appFunc) {
   
   options = options || {};
   this._options = options;
+  this._factory = new iopa.Factory(options);
 
   this._appFunc = appFunc;
   this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
@@ -145,7 +145,7 @@ Object.defineProperty(UdpServer.prototype, "port", { get: function () { return t
 Object.defineProperty(UdpServer.prototype, "address", { get: function () { return this._address; } });
 
 UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
-  var context = iopaContextFactory.createContext();
+  var context = this._factory.createContext();
   context[IOPA.Method] = "UDP";
  
   context[SERVER.TLS] = false;
@@ -184,7 +184,7 @@ UdpServer.prototype._write = function UdpServer_write(context, chunk, encoding, 
 
 UdpServer.prototype._invoke = function UdpServer_invoke(context) {
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  return iopaContextFactory.using(context, this._appFunc);
+  context.using(this._appFunc);
 };
 
 /**
@@ -225,7 +225,7 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;
 
-  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+  var context = this._factory.createRequestResponse(urlStr, options);
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
