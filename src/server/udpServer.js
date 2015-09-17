@@ -153,7 +153,7 @@ UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   context[SERVER.RemotePort] = rinfo.port;
   context[SERVER.LocalAddress] = this._address;
   context[SERVER.LocalPort] = this._port;
-  context[SERVER.RawStream] =  new iopaStream.IncomingMessageStream();
+  context[SERVER.RawStream] =  new iopaStream.IncomingStream();
   context[SERVER.RawStream].append(msg);
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
@@ -225,7 +225,9 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;
 
-  var context = this._factory.createRequestResponse(urlStr, options);
+  var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
+  context[SERVER.Capabilities] = originalContext[SERVER.Capabilities];
+  
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
