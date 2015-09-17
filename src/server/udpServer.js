@@ -227,7 +227,8 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
 
   var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
   context[SERVER.Capabilities] = originalContext[SERVER.Capabilities];
-  
+  context[SERVER.ParentContext] = originalContext;
+ 
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
