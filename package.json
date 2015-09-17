@@ -1,7 +1,7 @@
 {
   "name": "iopa-udp",
   "main": "src/udpServer.js",
-  "description": "Lightweight User Datagram Protocol (UDP) server and client, based on Internet of Protocols Alliance (IOPA) specification",
+  "description": "API-First  User Datagram Protocol (UDP) stack for Internet of Things (IoT), based on Internet of Protocols Alliance (IOPA) specification",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
   "maintainers": [

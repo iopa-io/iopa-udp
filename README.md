@@ -7,7 +7,7 @@
 [![NPM](https://nodei.co/npm/iopa-udp.png?downloads=true)](https://nodei.co/npm/iopa-udp/)
 
 ## About
-`iopa-udp` is a lightweight UDP server, based on the Internet of Protocols Alliance (IOPA) open standard  
+`iopa-udp` is an API-First User Datagram Protocol (UDP) stack for Internet of Things (IoT), based on the Internet of Protocols Alliance (IOPA) specification 
 
 It servers UDP messages in standard IOPA format and allows existing middleware for Connect, Express and limerun projects to consume/send each mesage.
 
