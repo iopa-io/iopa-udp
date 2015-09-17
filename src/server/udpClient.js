@@ -137,8 +137,7 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
 
   var urlStr = channelContext[SERVER.OriginalUrl] + path;
   var context = channelContext[SERVER.Factory].createRequestResponse(urlStr, options);
-  context[SERVER.Capabilities] = channelContext[SERVER.Capabilities];
-  context[SERVER.ParentContext] = channelContext;
+  channelContext[SERVER.Factory].mergeCapabilities(context, channelContext);
  
   context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];

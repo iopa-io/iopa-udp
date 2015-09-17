@@ -226,8 +226,7 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
     originalContext[IOPA.Path] + path;
 
   var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
-  context[SERVER.Capabilities] = originalContext[SERVER.Capabilities];
-  context[SERVER.ParentContext] = originalContext;
+  originalContext[SERVER.Factory].mergeCapabilities(context, originalContext);
  
   var response = context.response;
   
