@@ -138,18 +138,17 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
   var urlStr = channelContext[SERVER.OriginalUrl] + path;
   var context = channelContext[SERVER.Factory].createRequestResponse(urlStr, options);
   context[SERVER.Capabilities] = channelContext[SERVER.Capabilities];
-
+  context[SERVER.ParentContext] = channelContext;
+ 
   context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
   context[SERVER.RawStream] = channelContext[SERVER.RawStream];
   context[SERVER.SessionId] = channelContext[SERVER.SessionId];
-  context[SERVER.ParentContext] = channelContext;
- 
+  
   var response = context.response;
   response[SERVER.LocalAddress] = channelResponse[SERVER.LocalAddress];
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
-  response[SERVER.ParentContext] = channelResponse;
      
   return context.using(pipeline);
 };

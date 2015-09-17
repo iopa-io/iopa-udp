@@ -157,7 +157,7 @@ UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   context[SERVER.RawStream].append(msg);
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
-  context[SERVER.SessionId] = rinfo.address + ':' + rinfo.port;
+  context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
   context[SERVER.RawTransport] = this._udp;
  
   var response = context.response;
