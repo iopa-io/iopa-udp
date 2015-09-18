@@ -59,11 +59,14 @@ function UdpServer(options, appFunc) {
   this._appFunc = appFunc;
   
   this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
+
+  this._connect = this._appFunc.connect || function(context){return Promise.resolve(context)};
+   this._dispatch = this._appFunc.dispatch || function(context){return Promise.resolve(context)};
+
+  this._udpClient = new UdpClient(options, this._connect, this._dispatch);
   
-  if (typeof appFunc.connect === 'function')
-     this._udpClient = new UdpClient(options, appFunc.connect)
-  else
-    this._udpClient = new UdpClient(options, appFunc);
+  
+  
 }
 
 util.inherits(UdpServer, events.EventEmitter)
@@ -189,7 +192,7 @@ UdpServer.prototype._write = function UdpServer_write(context, chunk, encoding, 
 
 UdpServer.prototype._invoke = function UdpServer_invoke(context) {
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  context[SERVER.Dispatch] = function(context){return Promise.resolve(context);};
+  context[SERVER.Dispatch] = this._dispatch;
 
   context.using(this._appFunc);
 };

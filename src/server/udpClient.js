@@ -41,21 +41,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * @public
  * @constructor
  */
-function UdpClient(options, appFunc) { 
+function UdpClient(options, appFuncConnect, appFuncDispatch) { 
   
   _classCallCheck(this, UdpClient);
 
   if (typeof options === 'function') {
-    appFunc = options;
+    appFuncDispatch = appFuncConnect;
+    appFuncConnect = options;
     options = {};
   }
+  
+  this._connect = appFuncConnect || function(context){return Promise.resolve(context)};
+  this._dispatch = appFuncDispatch || function(context){return Promise.resolve(context)};
+
 
   events.EventEmitter.call(this);
    
   options = options || {};
   this._options = options;
   this._factory = new iopa.Factory(options);
-  this._appFunc = appFunc;
   
   this._connections = {};
 }
@@ -87,14 +91,15 @@ UdpClient.prototype.connect = function UdpServer_connect(urlStr){
   channelContext[SERVER.RawTransport] = _udp;
   channelContext[SERVER.OriginalUrl] = urlStr;
   channelContext[SERVER.Fetch] = UdpClient_Fetch.bind(this, channelContext);
-  channelContext[SERVER.Dispatch] = function(context){return Promise.resolve(context);};
-  
+  channelContext[SERVER.Dispatch] = this._dispatch;
+  channelContext.disconnect = this._disconnect.bind(this, channelContext);
+ 
   channelContext[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, channelContext));
   channelContext[SERVER.RawStream].on('finish', this._disconnect.bind(this, channelContext, null));
  
   channelResponse[SERVER.RawStream] = new iopaStream.IncomingStream();
   channelResponse[SERVER.RawTransport] = this._udp;
- 
+   
   _udp.on("error", this._disconnect.bind(this, channelContext) );
   
   _udp.on("message", function (msg, rinfo) {
@@ -115,7 +120,7 @@ UdpClient.prototype.connect = function UdpServer_connect(urlStr){
                channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
               that._connections[channelContext[SERVER.SessionId]] = channelContext;
            
-              resolve(that._appFunc(channelContext));
+              resolve(that._connect(channelContext));
            });
      });
  };

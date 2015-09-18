@@ -33,7 +33,20 @@ const iopa = require('iopa')
     return next();
   }
   
-  app.use(appServer);
+  app.use(function(channelContext, next){
+    channelContext["server.RawStream"].pipe(process.stdout);
+    return next();  
+  });
+  
+  app.connectuse(function(channelContext, next){
+    console.log("CONNECT");
+    return next();
+  });
+  
+  app.dispatchuse(function(context, next){
+    console.log("DISPATCH");
+    return next();
+  });
  
    var server = udp.createServer(app.build());
   
