@@ -29,6 +29,8 @@ const net = require('net'),
  * IOPA UDP CLIENT (GENERIC)  
  * ********************************************************* */
 
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
  /**
  * Creates a new IOPA Request using a UDP Url including host and port name
  *
@@ -39,13 +41,24 @@ const net = require('net'),
  * @public
  * @constructor
  */
-function UdpClient(options) { 
-   events.EventEmitter.call(this);
+function UdpClient(options, appFunc) { 
   
-  this._options = options || {}; 
-  this._factory = new iopa.Factory(options);
-  this._connections = {};
+  _classCallCheck(this, UdpClient);
+
+  if (typeof options === 'function') {
+    appFunc = options;
+    options = {};
   }
+
+  events.EventEmitter.call(this);
+   
+  options = options || {};
+  this._options = options;
+  this._factory = new iopa.Factory(options);
+  this._appFunc = appFunc;
+  
+  this._connections = {};
+}
 
 util.inherits(UdpClient, events.EventEmitter);
 
@@ -60,7 +73,7 @@ util.inherits(UdpClient, events.EventEmitter);
  * @constructor
  */
 UdpClient.prototype.connect = function UdpServer_connect(urlStr){
-  var channelContext = this._factory.createRequestResponse(urlStr, "UDP-CONNECT");
+  var channelContext = this._factory.createRequestResponse(urlStr, IOPA.METHODS.connect);
   var channelResponse = channelContext.response;
   
   var addressType;
@@ -74,7 +87,8 @@ UdpClient.prototype.connect = function UdpServer_connect(urlStr){
   channelContext[SERVER.RawTransport] = _udp;
   channelContext[SERVER.OriginalUrl] = urlStr;
   channelContext[SERVER.Fetch] = UdpClient_Fetch.bind(this, channelContext);
-             
+  channelContext[SERVER.Dispatch] = function(context){return Promise.resolve(context);};
+  
   channelContext[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, channelContext));
   channelContext[SERVER.RawStream].on('finish', this._disconnect.bind(this, channelContext, null));
  
@@ -100,8 +114,8 @@ UdpClient.prototype.connect = function UdpServer_connect(urlStr){
               channelResponse[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
                channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
               that._connections[channelContext[SERVER.SessionId]] = channelContext;
- 
-              resolve(channelContext);
+           
+              resolve(that._appFunc(channelContext));
            });
      });
  };
@@ -126,13 +140,6 @@ UdpClient.prototype._write = function UdpServer_write(channelContext, chunk, enc
  * @public
  */
 function UdpClient_Fetch(channelContext, path, options, pipeline) {
-  if (typeof options === 'function') {
-    pipeline = options;
-    options = {};
-  }
-  
-  pipeline = pipeline || function(){return Promise.resolve(null);};
-  
   var channelResponse = channelContext.response;
 
   var urlStr = channelContext[SERVER.OriginalUrl] + path;
@@ -149,7 +156,7 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
      
-  return context.using(pipeline);
+  return context.using(channelContext[SERVER.Dispatch](context).then(pipeline));
 };
 
 /**

@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
+
+global.Promise = require('bluebird');
+
 const iopa = require('iopa')
     , udp = require('./index.js')
     , util = require('util');
 
  //  serverPipeline 
   var app = new iopa.App();
-  app.use(function(channelContext, next){
+  
+  var appServer = function(channelContext, next){
     channelContext["server.RawStream"].pipe(process.stdout);
     return next();  
-  });
+  };
+  
+  appServer.connect = function(channelContext, next){
+    return next();
+  }
+  
+  app.use(appServer);
  
    var server = udp.createServer(app.build());
   

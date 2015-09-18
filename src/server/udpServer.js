@@ -51,14 +51,19 @@ function UdpServer(options, appFunc) {
     options = {};
   }
   
+  events.EventEmitter.call(this);
+  
   options = options || {};
   this._options = options;
   this._factory = new iopa.Factory(options);
-
   this._appFunc = appFunc;
+  
   this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
   
-   this._udpClient = new UdpClient(options);
+  if (typeof appFunc.connect === 'function')
+     this._udpClient = new UdpClient(options, appFunc.connect)
+  else
+    this._udpClient = new UdpClient(options, appFunc);
 }
 
 util.inherits(UdpServer, events.EventEmitter)
@@ -146,7 +151,7 @@ Object.defineProperty(UdpServer.prototype, "address", { get: function () { retur
 
 UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   var context = this._factory.createContext();
-  context[IOPA.Method] = "UDP";
+  context[IOPA.Method] = IOPA.METHODS.data;
  
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = rinfo.address;
@@ -184,6 +189,8 @@ UdpServer.prototype._write = function UdpServer_write(context, chunk, encoding, 
 
 UdpServer.prototype._invoke = function UdpServer_invoke(context) {
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
+  context[SERVER.Dispatch] = function(context){return Promise.resolve(context);};
+
   context.using(this._appFunc);
 };
 
@@ -213,11 +220,6 @@ UdpServer.prototype.connect = function UdpServer_connect(urlStr){
  */
 UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFetch(originalContext, path, options, pipeline) {
   var originalResponse = originalContext.response; 
- 
-  if (typeof options === 'function') {
-    pipeline = options;
-    options = {};
-  }
   
   var urlStr = originalContext[IOPA.Scheme] +
     "//" +
@@ -242,7 +244,7 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
   response[SERVER.LocalPort] = response[SERVER.LocalPort]; 
   response[SERVER.SessionId] = response[SERVER.SessionId];
   
-  return context.using(pipeline);
+  return context.using(originalContext[SERVER.Dispatch](context).then(pipeline));
 };
   
 /**
