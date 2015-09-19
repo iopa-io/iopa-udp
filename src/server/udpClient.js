@@ -76,8 +76,10 @@ util.inherits(UdpClient, events.EventEmitter);
  * @public
  * @constructor
  */
-UdpClient.prototype.connect = function UdpServer_connect(urlStr){
-  var channelContext = this._factory.createRequestResponse(urlStr, IOPA.METHODS.connect);
+UdpClient.prototype.connect = function UdpServer_connect(urlStr, defaults){
+  defaults = defaults || {};
+  defaults[IOPA.Method] = defaults[IOPA.Method] || IOPA.METHODS.connect;
+  var channelContext = this._factory.createRequestResponse(urlStr, defaults);
   var channelResponse = channelContext.response;
   
   var addressType;

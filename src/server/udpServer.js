@@ -206,8 +206,8 @@ UdpServer.prototype._invoke = function UdpServer_invoke(context) {
  * @returns {Promise(context)}
  * @public
  */
-UdpServer.prototype.connect = function UdpServer_connect(urlStr){
-    return this._udpClient.connect(urlStr);
+UdpServer.prototype.connect = function UdpServer_connect(urlStr, defaults){
+    return this._udpClient.connect(urlStr, defaults);
 };
 
 /**
