@@ -247,7 +247,12 @@ UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFet
   response[SERVER.LocalPort] = response[SERVER.LocalPort]; 
   response[SERVER.SessionId] = response[SERVER.SessionId];
   
-  return context.using(originalContext[SERVER.Dispatch](context).then(pipeline));
+    return context.using(function(){
+     var value = originalContext[SERVER.Dispatch](context);
+     pipeline(context);
+     return value;
+  });
+  
 };
   
 /**

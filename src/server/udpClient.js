@@ -160,8 +160,12 @@ function UdpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.LocalAddress] = channelResponse[SERVER.LocalAddress];
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
-     
-  return context.using(channelContext[SERVER.Dispatch](context).then(pipeline));
+  return context.using(function(){
+     var value = channelContext[SERVER.Dispatch](context);
+     pipeline(context);
+     return value;
+  });
+  
 };
 
 /**
