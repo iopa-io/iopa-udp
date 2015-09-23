@@ -10,14 +10,14 @@
       "email": "build@iopa.io"
     }
   ],
-  "version": "1.2.19",
+  "version": "1.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/iopa-io/iopa-udp.git"
   },
   "dependencies": {
-    "iopa": "^1.2.0",
-    "iopa-common-stream": "^1.2.0"
+    "iopa": "^1.3.0",
+    "iopa-common-stream": "^1.3.0"
   },
   "keywords": [
     "limerun",
