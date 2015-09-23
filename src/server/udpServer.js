@@ -58,15 +58,11 @@ function UdpServer(options, appFunc) {
   this._factory = new iopa.Factory(options);
   this._appFunc = appFunc;
   
-  this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
-
-  this._connect = this._appFunc.connect || function(context){return Promise.resolve(context)};
+   this._connect = this._appFunc.connect || function(context){return Promise.resolve(context)};
    this._dispatch = this._appFunc.dispatch || function(context){return Promise.resolve(context)};
 
   this._udpClient = new UdpClient(options, this._connect, this._dispatch);
-  
-  
-  
+
 }
 
 util.inherits(UdpServer, events.EventEmitter)
@@ -179,7 +175,10 @@ UdpServer.prototype._onMessage = function UdpServer_onMessage(msg, rinfo) {
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
-  this.emit(IOPA.EVENTS.Request, context)
+  context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
+  context[SERVER.Dispatch] = this._dispatch;
+
+  context.using(this._appFunc);
 }
 
 UdpServer.prototype._write = function UdpServer_write(context, chunk, encoding, done) { 
@@ -190,12 +189,6 @@ UdpServer.prototype._write = function UdpServer_write(context, chunk, encoding, 
    context[SERVER.RawTransport].send(chunk, 0, chunk.length,  context[SERVER.RemotePort], context[SERVER.RemoteAddress], done );
  }
 
-UdpServer.prototype._invoke = function UdpServer_invoke(context) {
-  context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  context[SERVER.Dispatch] = this._dispatch;
-
-  context.using(this._appFunc);
-};
 
 /**
  * Creates a new IOPA UDP Client Connection using URL host and port name
@@ -222,6 +215,11 @@ UdpServer.prototype.connect = function UdpServer_connect(urlStr, defaults){
  * @public
  */
 UdpServer.prototype.requestResponseFetch = function UdpServer_requestResponseFetch(originalContext, path, options, pipeline) {
+   if (typeof options === 'function') {
+    pipeline = options;
+    options = {};
+  }
+  
   var originalResponse = originalContext.response; 
   
   var urlStr = originalContext[IOPA.Scheme] +

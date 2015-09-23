@@ -65,7 +65,7 @@ describe('#UdpServer()', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client.fetch("/",
+                client["server.Fetch"]("/",
                     { "iopa.Method": "GET", "iopa.Body": new BufferList() },
                     function (context) {
                         try{
@@ -105,13 +105,13 @@ describe('#UdpServer()', function() {
                 return server3.connect("coap://127.0.0.1")
               })
           .then(function(client){
-             client["iopa.CallCancelled"].onCancelled(function(reason){ 
-               reason.code.should.equal('OperationCancelled');
+             client["iopa.CancelToken"].onCancelled.then(function(reason){ 
+               reason.should.equal("disconnect");
                done();
-              });
-            
+             });
+                       
               server3.close();
-                       return null;
+              return null;
           });
     });
     

@@ -28,12 +28,16 @@ const iopa = require('iopa')
     channelContext["server.RawStream"].pipe(process.stdout);
     return next();  
   };
-  
-  appServer.connect = function(channelContext, next){
+   
+  app.channeluse(function(channelContext, next){
+    console.log("CHANNEL");
+     channelContext["server.RawStream"].pipe(process.stdout);
+   
     return next();
-  }
+  });
   
   app.use(function(channelContext, next){
+    console.log("INVOKE");
     channelContext["server.RawStream"].pipe(process.stdout);
     return next();  
   });
@@ -61,7 +65,7 @@ const iopa = require('iopa')
    .then(function(client){
       console.log("Client is on port " + client["server.LocalPort"]);
        var options = { "iopa.Body": "Hello World\n" }
-      return client.fetch("/", options, function (context) {
+      return client["server.Fetch"]("/", options, function (context) {
         context["server.RawStream"].write(context["iopa.Body"]);
       });
    })
