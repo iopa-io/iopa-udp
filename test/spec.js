@@ -105,7 +105,7 @@ describe('#UdpServer()', function() {
                 return server3.connect("coap://127.0.0.1")
               })
           .then(function(client){
-             client["iopa.CancelToken"].onCancelled.then(function(reason){ 
+             client["iopa.CancelToken"].onCancelled(function(reason){ 
                reason.should.equal("disconnect");
                done();
              });
