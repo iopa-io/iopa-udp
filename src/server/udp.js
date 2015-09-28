@@ -42,7 +42,7 @@ function IopaUdp(app) {
 
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp] = {};
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.Version] = packageVersion;
-   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp]["server.Ports"] =[];
+   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort] =[];
 
    app.listen = this._appListen.bind(this, app.listen || function(){ return Promise.reject(new Error("no registered transport provider")); });
    app.connect = this._appConnect.bind(this, app.connect || function(){ return Promise.reject(new Error("no registered transport provider")); });
@@ -60,12 +60,13 @@ IopaUdp.prototype._appListen = function(next, transport, port, address, options)
   if (!this._udpServer)
   {
       this._udpServer = new UdpServer(options, this.app.properties[SERVER.Pipeline]);
-      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp]["server.Instance"] = this._udpServer;
+      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.RawTransport] = this._udpServer;
   }
+  
   var that = this;
   return this._udpServer.listen(port, address)
     .then(function(linfo){ 
-      that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp]["server.Ports"].push(linfo.port);
+      that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
       return linfo;
     });
 }
@@ -78,10 +79,7 @@ IopaUdp.prototype._appConnect = function(next, transport, urlStr, defaults){
     this.app.build();
     
   if (!this._udpServer)
-  {
-      this._udpServer = new UdpServer({}, this.app.properties[SERVER.Pipeline]);
-      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp]["server.Instance"] = this._udpServer;
-  }
+      throw new Error("cannot call app.connect before app.listen on IOPA UDP Transport");
 
    return this._udpServer.connect(urlStr, defaults);   
 }
