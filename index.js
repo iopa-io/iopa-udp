@@ -16,7 +16,9 @@
 
 var Server = require('./src/server/udpServer.js');
 var Client = require('./src/server/udpClient.js');
+var Middleware = require('./src/server/udp.js');
 
+module.exports = Middleware;
 module.exports.createServer = function(options, appFunc){return new Server(options, appFunc);}
 module.exports.Server = Server;
 module.exports.Client = Client;

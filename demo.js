@@ -18,17 +18,13 @@
 global.Promise = require('bluebird');
 
 const iopa = require('iopa')
-    , udp = require('./index.js')
+    , IopaUdp = require('./index.js')
     , util = require('util');
 
  //  serverPipeline 
   var app = new iopa.App();
-  
-  var appServer = function(channelContext, next){
-    channelContext["server.RawStream"].pipe(process.stdout);
-    return next();  
-  };
-   
+  app.use(IopaUdp);
+
   app.channeluse(function(channelContext, next){
     console.log("CHANNEL");
      channelContext["server.RawStream"].pipe(process.stdout);
@@ -51,16 +47,14 @@ const iopa = require('iopa')
     console.log("DISPATCH");
     return next();
   });
- 
-   var server = udp.createServer(app.build());
-  
+   
  if (!process.env.PORT)
   process.env.PORT = 5683;
 
- server.listen(process.env.PORT, process.env.IP)
-   .then(function(){
-      console.log("Server is on port " + server.port );
-      return server.connect("coap://127.0.0.1");
+ app.listen("udp:", process.env.PORT, process.env.IP)
+   .then(function(linfo){
+      console.log("Server is on port " + linfo.port );
+      return app.connect("udp:", "coap://127.0.0.1");
    })
    .then(function(client){
       console.log("Client is on port " + client["server.LocalPort"]);
