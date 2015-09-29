@@ -175,7 +175,7 @@ UdpSimple.prototype._onMessage = function UdpSimple_onMessage(msg, rinfo) {
   response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
   response[SERVER.LocalPort] = context[SERVER.LocalPort];
   response[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, context.response));
-  response[SERVER.RawTransport] = this.udp; 
+  response[SERVER.RawTransport] = this._udp; 
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
