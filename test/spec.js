@@ -14,6 +14,7 @@
  * limitations under the License.
  */
  
+global.Promise = require('bluebird');
 
 const iopa = require('iopa')
     , udp = require('../index.js')
@@ -116,3 +117,98 @@ describe('#UdpServer()', function() {
     });
     
 });
+
+
+describe('#UDP IOPA Middleware()', function() {
+       var app, port;
+       var events = new Events.EventEmitter();
+       var data = new BufferList();
+        
+       before(function(done){
+        
+        //  serverPipeline 
+          app = new iopa.App();
+          app.use(udp);
+          
+          app.use(function(channelContext, next){
+            channelContext["server.RawStream"].on("data", function(chunk){
+               events.emit("test.Data", chunk);
+               data.append(chunk);
+            });
+             return next();  
+          });
+            
+        if (!process.env.PORT)
+          process.env.PORT = 5683;
+          
+        app.listen("udp:", process.env.PORT, process.env.IP)
+          .then(function(linfo){
+              port = linfo.port;
+           done();
+           });
+ 
+      });
+      
+    it('server should listen', function() {
+        console.log("Server is on port " + port);
+    });
+    
+    it('client should connect and server should receive client packets', function(done) {
+       app.connect("udp:","coap://127.0.0.1")
+       .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"]);
+                events.on("test.Data", function (data) {
+                    data.toString().should.equal('Hello World');
+                    done();
+                });
+                client["server.Fetch"]("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                        try{
+                        context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].write("Hello World");
+                         } catch (ex) {
+                            console.log(ex);
+                            return Promise.reject(ex);
+                        }
+                    });
+            })
+    });
+    
+    it('server should close', function() {
+        app.close();
+    });
+ 
+    it('server disconnects, client should error', function(done) {
+      
+          //serverPipeline 
+          app = new iopa.App();
+          app.use(udp);
+          app.use(function(channelContext, next){
+              return next().then(function(){ return new Promise(function(resolve, reject){
+                 channelContext["udpPacketServer.SessionClose"] = resolve;
+                 channelContext["udpPacketServer.SessionError"] = reject;
+                }); 
+            });
+          });
+
+         if (!process.env.PORT)
+           process.env.PORT = 1883;
+          
+         app.listen("udp:", process.env.PORT, process.env.IP)
+          .then(function(){
+                return app.connect("udp:","coap://127.0.0.1")
+              })
+          .then(function(client){
+             client["iopa.CancelToken"].onCancelled(function(reason){ 
+               reason.should.equal("disconnect");
+               done();
+             });
+                       
+              app.close();
+              return null;
+          });
+    });
+    
+});
+

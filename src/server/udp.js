@@ -16,7 +16,7 @@
 
 // DEPENDENCIES
 var iopa = require('iopa');
-var UdpServer = require('./udpServer.js');
+var UdpDual = require('./udpDual.js');
 
 const IOPA = iopa.constants.IOPA,
       SERVER = iopa.constants.SERVER
@@ -46,25 +46,27 @@ function IopaUdp(app) {
 
    app.listen = this._appListen.bind(this, app.listen || function(){ return Promise.reject(new Error("no registered transport provider")); });
    app.connect = this._appConnect.bind(this, app.connect || function(){ return Promise.reject(new Error("no registered transport provider")); });
+   app.close = this._appClose.bind(this, app.close || function(){ return Promise.resolve(null); });
+ 
    this.app = app; 
-   this._udpServer = null;     
+   this._udpDual = null;     
 }
 
-IopaUdp.prototype._appListen = function(next, transport, port, address, options){
+IopaUdp.prototype._appListen = function(next, transport, unicastPort, unicastAddress, options){
   if (transport !== "udp:")
-    return next(transport, port, address, options);
+    return next(transport, unicastPort, unicastAddress, options);
   
   if (!this.app.properties[SERVER.IsBuilt]) 
     this.app.build();
     
-  if (!this._udpServer)
+  if (!this._udpDual)
   {
-      this._udpServer = new UdpServer(options, this.app.properties[SERVER.Pipeline]);
-      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.RawTransport] = this._udpServer;
+      this._udpDual = new UdpDual(options, this.app.properties[SERVER.Pipeline]);
+      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.RawTransport] = this._udpDual;
   }
   
   var that = this;
-  return this._udpServer.listen(port, address)
+  return this._udpDual.listen(unicastPort, unicastAddress)
     .then(function(linfo){ 
       that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
       return linfo;
@@ -78,10 +80,17 @@ IopaUdp.prototype._appConnect = function(next, transport, urlStr, defaults){
   if (!this.app.properties[SERVER.IsBuilt]) 
     this.app.build();
     
-  if (!this._udpServer)
+  if (!this._udpDual)
       throw new Error("cannot call app.connect before app.listen on IOPA UDP Transport");
 
-   return this._udpServer.connect(urlStr, defaults);   
+   return this._udpDual.connect(urlStr, defaults);   
+}
+
+IopaUdp.prototype._appClose = function(next){  
+  if (this._udpDual)
+   return   this._udpDual.close().then(next);
+   else
+   return next();
 }
 
 module.exports = IopaUdp;
