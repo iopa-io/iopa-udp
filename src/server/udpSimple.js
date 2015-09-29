@@ -31,19 +31,14 @@ const packageVersion = require('../../package.json').version;
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /* ***********************************************************************
- * IOPA UDP DUAL UNICAST SERVER/CLIENT AND OPTIONAL MULTICAST SERVER 
- * 
- * Note: unicast server/client is kept on a different port than multicast
- * as most multicast protocols used by IOPA are for discovery and 
- * may well be shared amongst multip servers running on a single host
- * machine.  This is in part because Berkley sockets require a multicast
- * socket to also own the unicast socket with same port. 
+ * IOPA UDP SIMPLEX SERVER AND CLIENT ON SAME PORT 
+ * Unicast or Multicast+Unicast
  * *********************************************************************** */
 
 /**
  * Representes UDP Server
  *
- * @class UdpDual
+ * @class UdpSimple
  * @param options (object)  {currently unusued}
  * @param appFunc (function(context))   delegate to which to call with all new inbound requests
  * @event request function(context)    alternative way to get inbound requests
@@ -51,8 +46,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * @constructor
  * @public
  */
-function UdpDual(options, appFunc) {
-  _classCallCheck(this, UdpDual);
+function UdpSimple(options, appFunc) {
+  _classCallCheck(this, UdpSimple);
 
   if (typeof options === 'function') {
     appFunc = options;
@@ -69,13 +64,12 @@ function UdpDual(options, appFunc) {
   this._connect = this._appFunc.connect || function (context) { return Promise.resolve(context) };
   this._dispatch = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
 
-  this._unicastUDP = null;
-  this._multicastUDP = null;
-  
+  this._udp = null;
+   
   this._connections = {};
 }
 
-util.inherits(UdpDual, events.EventEmitter)
+util.inherits(UdpSimple, events.EventEmitter)
 
 /**
  * @method listen
@@ -86,20 +80,20 @@ util.inherits(UdpDual, events.EventEmitter)
  * @returns {Promise} 
  * @public
  */
-UdpDual.prototype.listen = function UdpDual_listen(unicastPort, unicastAddress, options) {
+UdpSimple.prototype.listen = function UdpSimple_listen(port, address, options) {
   options = options || {};
   iopa.util.shallow.merge(options, this._options);
 
-  if (unicastPort == undefined) {
-    unicastPort = 0;
+  if (port == undefined) {
+    address = 0;
   }
 
-  if (this._unicastUDP)
+  if (this._udp)
     return new Promise(function (resolve, reject) {
       reject("Already listening");
     });
 
-  if (unicastAddress && net.isIPv6(unicastAddress))
+  if (address && net.isIPv6(address))
     options[SERVER.LocalPortType] = 'udp6';
 
   if (!options[SERVER.LocalPortType])
@@ -110,90 +104,69 @@ UdpDual.prototype.listen = function UdpDual_listen(unicastPort, unicastAddress, 
 
   if (Number(process.version.match(/^v(\d+\.\d+)/)[1]) > 0.11) {
     //RE-USE ADDRESS IF NODE 0.12 OR LATER
-    this._unicastUDP = dgram.createSocket({ type: options[SERVER.LocalPortType], "reuseAddr": options[SERVER.LocalPortReuse] })
+    this._udp = dgram.createSocket({ type: options[SERVER.LocalPortType], "reuseAddr": options[SERVER.LocalPortReuse] })
   }
   else {
-    this._unicastUDP = dgram.createSocket(this._options[SERVER.LocalPortType]);
+    this._udp = dgram.createSocket(this._options[SERVER.LocalPortType]);
   }
 
-  this._unicastUDP.on("message", this._onMessage.bind(this, false));
+  this._udp.on("message", this._onMessage.bind(this));
   var that = this;
 
-  var unicastPromise = new Promise(function (resolve, reject) {
-    that._unicastUDP.bind(unicastPort, unicastAddress || '0.0.0.0',
+  return new Promise(function (resolve, reject) {
+    that._udp.bind(port, address || null,
       function () {
-        that._linfo = that._unicastUDP.address();
-        that._unicastPort = that._linfo.port;
-        that._unicastAddress = that._linfo.address;
-
-        resolve(that._linfo);
-      });
-  });
-
-  if (options[SERVER.MulticastPort]) {
-    this._multicastUDP = dgram.createSocket(this._options[SERVER.LocalPortType]);   // always use IPANY for multicast
-    this._multicastUDP.on("message", this._onMessage.bind(this, true));
-
-    var multicastPromise = new Promise(function (resolve, reject) {
-      that._multicastUDP.bind(options[SERVER.MulticastPort],
-        function () {
-          var linfo2 = that._multicastUDP.address();
-          that._multicastPort = linfo2.port;
+        that._linfo = that._udp.address();
+        that._port = that._linfo.port;
+        that._address = that._linfo.address;
        
-          var el;
-
-          if (typeof options[SERVER.MulticastAddress] == 'object' && util.isArray(options[SERVER.MulticastAddress])) {
+        var el;
+        if (typeof options[SERVER.MulticastAddress] == 'object' && util.isArray(options[SERVER.MulticastAddress])) {
             for (var n = 0; n < options[SERVER.MulticastAddress].length; n++) {
               el = options[SERVER.MulticastAddress][n];
-              that._multicastUDP.setBroadcast(true);
-              that._multicastUDP.setMulticastTTL(128);
+              that._udp.setBroadcast(true);
+              that._udp.setMulticastTTL(128);
               // that._multicastUDP.setMulticastLoopback(true);
               if (typeof el == 'string') {
-                that._multicastUDP.addMembership(el);
+                that._udp.addMembership(el);
                 that._multicastAddress = el;
               }
               else if (typeof el == 'object' && util.isArray(el)) {
-                that._multicastUDP.addMembership(el[0], el[1]);
+                that._udp.addMembership(el[0], el[1]);
                     that._multicastAddress = el[0];
               }
             }
           }
           else if (typeof options[SERVER.MulticastAddress] == 'string') {
             el = options[SERVER.MulticastAddress];
-                 that._multicastUDP.addMembership(el);
+                that._udp.addMembership(el);
                 that._multicastAddress = el;
           }
 
-          resolve(true);
-        });
-    });
-    return Promise.all([unicastPromise, multicastPromise]).then(function (values) { return values[0] });
-
-  } else
-    return unicastPromise;
+        resolve(that._linfo);
+      });
+  });
 };
 
-Object.defineProperty(UdpDual.prototype, SERVER.LocalPort, { get: function () { return this._unicastPort; } });
-Object.defineProperty(UdpDual.prototype, SERVER.LocalAddress, { get: function () { return this._unicastAddress; } });
-Object.defineProperty(UdpDual.prototype, SERVER.MulticastPort, { get: function () { return this._multicastPort; } });
-Object.defineProperty(UdpDual.prototype, SERVER.MulticastAddress, { get: function () { return this._multicastAddress; } });
+Object.defineProperty(UdpSimple.prototype, SERVER.LocalPort, { get: function () { return this._port; } });
+Object.defineProperty(UdpSimple.prototype, SERVER.LocalAddress, { get: function () { return this._address; } });
+Object.defineProperty(UdpSimple.prototype, SERVER.MulticastAddress, { get: function () { return this._multicastAddress; } });
 
-UdpDual.prototype._onMessage = function UdpServer_onMessage(isMulticast, msg, rinfo) {
+UdpSimple.prototype._onMessage = function UdpSimple_onMessage(msg, rinfo) {
   var context = this._factory.createContext();
   context[IOPA.Method] = IOPA.METHODS.data;
  
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = rinfo.address;
   context[SERVER.RemotePort] = rinfo.port;
-  context[SERVER.LocalAddress] = this._unicastAddress;  // always use unicast for replies and subsequent sends even if received on multicast
-  context[SERVER.LocalPort] = this._unicastPort;  // always use unicast for replies and subsequent sends even if received on multicast
+  context[SERVER.LocalAddress] = this._address; 
+  context[SERVER.LocalPort] = this._port;  
   context[SERVER.RawStream] =  new iopaStream.IncomingStream();
   context[SERVER.RawStream].append(msg);
-  context[SERVER.IsMulticast] = isMulticast;
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
-  context[SERVER.RawTransport] = this._unicastUDP;   // always use unicast for replies and subsequent sends even if received on multicast
+  context[SERVER.RawTransport] = this._udp;   
  
   var response = context.response;
   response[SERVER.TLS] = context[SERVER.TLS];
@@ -202,8 +175,7 @@ UdpDual.prototype._onMessage = function UdpServer_onMessage(isMulticast, msg, ri
   response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
   response[SERVER.LocalPort] = context[SERVER.LocalPort];
   response[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, context.response));
-  response[SERVER.RawTransport] = this._unicastUDP;  // always use unicast for replies and subsequent sends even if received on multicast
-  response[SERVER.IsMulticast] = false;   // always use unicast for replies and subsequent sends even if received on multicast
+  response[SERVER.RawTransport] = this.udp; 
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
@@ -224,22 +196,14 @@ UdpDual.prototype._onMessage = function UdpServer_onMessage(isMulticast, msg, ri
  * @public
  * @constructor
  */
-UdpDual.prototype.connect = function UdpDual_connect(urlStr, defaults) {
+UdpSimple.prototype.connect = function UdpSimple_connect(urlStr, defaults) {
   defaults = defaults || {};
   defaults[IOPA.Method] = defaults[IOPA.Method] || IOPA.METHODS.connect;
   var channelContext = this._factory.createRequest(urlStr, defaults);
 
-  if (defaults[SERVER.IsMulticast])
-  {
-     channelContext[SERVER.RawTransport] = this._multicastUDP;   
-     channelContext[SERVER.LocalPort] = this._multicastPort;
-     channelContext[SERVER.LocalAddress] = this._multicastAddress;
-  } else
-  {
-        channelContext[SERVER.RawTransport] = this._unicastUDP;    // default send on unicast
-        channelContext[SERVER.LocalPort] = this._unicastPort;
-        channelContext[SERVER.LocalAddress] = this._unicastAddress;
-  }
+  channelContext[SERVER.RawTransport] = this._udp;   
+  channelContext[SERVER.LocalPort] = this._port;
+  channelContext[SERVER.LocalAddress] = this._address;
   
   channelContext[SERVER.OriginalUrl] = urlStr;
   
@@ -257,7 +221,7 @@ UdpDual.prototype.connect = function UdpDual_connect(urlStr, defaults) {
   return new Promise(function (resolve, reject) {resolve(that._connect(channelContext));});   
 };
 
-UdpDual.prototype._write = function UdpDual_write(context, chunk, encoding, done) {
+UdpSimple.prototype._write = function UdpSimple_write(context, chunk, encoding, done) {
   if (typeof chunk === "string" || chunk instanceof String) {
     chunk = new Buffer(chunk, encoding);
   }
@@ -275,7 +239,7 @@ UdpDual.prototype._write = function UdpDual_write(context, chunk, encoding, done
 * @returns Promise<null>
 * @public
 */
-UdpDual.prototype._fetch = function UdpDual_Fetch(channelContext, transportContext, path, options, pipeline) {
+UdpSimple.prototype._fetch = function UdpSimple_Fetch(channelContext, transportContext, path, options, pipeline) {
   if (typeof options === 'function') {
     pipeline = options;
     options = {};
@@ -308,7 +272,7 @@ UdpDual.prototype._fetch = function UdpDual_Fetch(channelContext, transportConte
  * 
  * @public
  */
-UdpDual.prototype._disconnect = function UdpDual_disconnect(channelContext, err) {
+UdpSimple.prototype._disconnect = function UdpSimple_disconnect(channelContext, err) {
   if (channelContext[IOPA.CancelToken].isCancelled)
      return;
      
@@ -325,19 +289,16 @@ UdpDual.prototype._disconnect = function UdpDual_disconnect(channelContext, err)
  * @returns {Promise()}
  * @public
  */
-UdpDual.prototype.close = function UdpServer_close() {
+UdpSimple.prototype.close = function UdpSimple_close() {
    for (var key in this._connections)
       this._disconnect(this._connections[key], null);
 
    this._connections = {};
   
-   this._unicastUDP.close();
+   this._udp.close();
    
-   if (this._multicastUDP)
-       this._multicastUDP.close();
-   this._unicastUDP = undefined;
-   this._multicastUDP = undefined;
+   this._udp = undefined;
    return Promise.resolve(null);
 };
 
-module.exports = UdpDual;
+module.exports = UdpSimple;

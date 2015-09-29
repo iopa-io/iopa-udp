@@ -16,7 +16,7 @@
 
 // DEPENDENCIES
 var iopa = require('iopa');
-var UdpDual = require('./udpDual.js');
+var UdpSimple = require('./udpSimple.js');
 
 const IOPA = iopa.constants.IOPA,
       SERVER = iopa.constants.SERVER
@@ -44,53 +44,45 @@ function IopaUdp(app) {
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.Version] = packageVersion;
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort] =[];
 
-   app.listen = this._appListen.bind(this, app.listen || function(){ return Promise.reject(new Error("no registered transport provider")); });
-   app.connect = this._appConnect.bind(this, app.connect || function(){ return Promise.reject(new Error("no registered transport provider")); });
-   app.close = this._appClose.bind(this, app.close || function(){ return Promise.resolve(null); });
- 
+   app.createServer = this._appCreateServer.bind(this, app.createServer || function(){ return Promise.reject(new Error("no registered transport provider")); });
+  
    this.app = app; 
-   this._udpDual = null;     
-}
+ }
 
-IopaUdp.prototype._appListen = function(next, transport, unicastPort, unicastAddress, options){
+IopaUdp.prototype._appCreateServer = function(next, transport, unicastPort, unicastAddress, options){
   if (transport !== "udp:")
     return next(transport, unicastPort, unicastAddress, options);
+    
+   options = options || {};
   
   if (!this.app.properties[SERVER.IsBuilt]) 
-    this.app.build();
-    
-  if (!this._udpDual)
-  {
-      this._udpDual = new UdpDual(options, this.app.properties[SERVER.Pipeline]);
-      this.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.RawTransport] = this._udpDual;
-  }
-  
+    this.app.build();   
+   
   var that = this;
-  return this._udpDual.listen(unicastPort, unicastAddress)
+  var server = new UdpSimple(options, this.app.properties[SERVER.Pipeline]);
+ 
+  var unicastPromise = server.listen(unicastPort, unicastAddress)
     .then(function(linfo){ 
       that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
       return linfo;
     });
-}
-
-IopaUdp.prototype._appConnect = function(next, transport, urlStr, defaults){
-  if (transport !== "udp:")
-    return next(transport, urlStr, defaults);
-  
-  if (!this.app.properties[SERVER.IsBuilt]) 
-    this.app.build();
     
-  if (!this._udpDual)
-      throw new Error("cannot call app.connect before app.listen on IOPA UDP Transport");
-
-   return this._udpDual.connect(urlStr, defaults);   
-}
-
-IopaUdp.prototype._appClose = function(next){  
-  if (this._udpDual)
-   return   this._udpDual.close().then(next);
-   else
-   return next();
+  if (options[SERVER.MulticastPort] && (options[SERVER.MulticastPort] !== unicastPort))
+  {
+      var server2 = new UdpSimple(options, this.app.properties[SERVER.Pipeline]);
+      server.multicastServer = server2;
+      
+      var multicastPromise = server2.listen(options[SERVER.MulticastPort])
+      .then(function(linfo){ 
+      that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
+      return linfo;
+      });
+      
+      return Promise.all(unicastPromise, multicastPromise).then(function(values){return server; });
+      
+  }
+  else
+     return unicastPromise.then(function(){return server; });
 }
 
 module.exports = IopaUdp;

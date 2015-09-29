@@ -18,7 +18,7 @@ global.Promise = require('bluebird');
 
 const iopa = require('iopa')
     , udp = require('../index.js')
-     , util = require('util')
+    , util = require('util')
     , Events = require('events')
     , BufferList = require('bl');
     
@@ -120,7 +120,7 @@ describe('#UdpServer()', function() {
 
 
 describe('#UDP IOPA Middleware()', function() {
-       var app, port;
+       var app, port, _server;
        var events = new Events.EventEmitter();
        var data = new BufferList();
         
@@ -141,10 +141,11 @@ describe('#UDP IOPA Middleware()', function() {
         if (!process.env.PORT)
           process.env.PORT = 5683;
           
-        app.listen("udp:", process.env.PORT, process.env.IP)
-          .then(function(linfo){
-              port = linfo.port;
-           done();
+        app.createServer("udp:", process.env.PORT, process.env.IP)
+          .then(function(server){
+              port = server["server.LocalPort"];
+              _server = server;
+                done();
            });
  
       });
@@ -154,7 +155,7 @@ describe('#UDP IOPA Middleware()', function() {
     });
     
     it('client should connect and server should receive client packets', function(done) {
-       app.connect("udp:","coap://127.0.0.1")
+       _server.connect("coap://127.0.0.1")
        .then(function (client) {
                 console.log("Client is on port " + client["server.LocalPort"]);
                 events.on("test.Data", function (data) {
@@ -176,7 +177,7 @@ describe('#UDP IOPA Middleware()', function() {
     });
     
     it('server should close', function() {
-        app.close();
+        _server.close();
     });
  
     it('server disconnects, client should error', function(done) {
@@ -195,9 +196,12 @@ describe('#UDP IOPA Middleware()', function() {
          if (!process.env.PORT)
            process.env.PORT = 1883;
           
-         app.listen("udp:", process.env.PORT, process.env.IP)
-          .then(function(){
-                return app.connect("udp:","coap://127.0.0.1")
+          
+         var _server2;
+         app.createServer("udp:", process.env.PORT, process.env.IP)
+          .then(function(server){
+              _server2=server;
+                return server.connect("coap://127.0.0.1")
               })
           .then(function(client){
              client["iopa.CancelToken"].onCancelled(function(reason){ 
@@ -205,7 +209,7 @@ describe('#UDP IOPA Middleware()', function() {
                done();
              });
                        
-              app.close();
+              _server2.close();
               return null;
           });
     });
