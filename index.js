@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var Server = require('./src/server/udpServer.js');
-var Client = require('./src/server/udpClient.js');
+var UdpComplex = require('./src/server/udpComplex.js');
 var Middleware = require('./src/server/udp.js');
+var UdpSimplex = require('./src/server/udpSimplex.js');
 
 module.exports = Middleware;
-module.exports.createServer = function(options, appFunc){return new Server(options, appFunc);}
-module.exports.Server = Server;
-module.exports.Client = Client;
+module.exports.createServer = function(options, appFunc){return new UdpComplex(options, appFunc);}
+module.exports.Server = UdpComplex;
+module.exports.Simple = UdpSimplex;

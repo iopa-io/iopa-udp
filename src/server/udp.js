@@ -16,7 +16,7 @@
 
 // DEPENDENCIES
 var iopa = require('iopa');
-var UdpSimple = require('./udpSimple.js');
+var UdpComplex = require('./udpComplex.js');
 
 const IOPA = iopa.constants.IOPA,
       SERVER = iopa.constants.SERVER
@@ -44,45 +44,21 @@ function IopaUdp(app) {
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.Version] = packageVersion;
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort] =[];
 
-   app.createServer = this._appCreateServer.bind(this, app.createServer || function(){ return Promise.reject(new Error("no registered transport provider")); });
+   app.createServer = this._appCreateServer.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
   
    this.app = app; 
  }
 
-IopaUdp.prototype._appCreateServer = function(next, transport, unicastPort, unicastAddress, options){
+IopaUdp.prototype._appCreateServer = function(next, transport, options){
   if (transport !== "udp:")
-    return next(transport, unicastPort, unicastAddress, options);
+    return next(transport, options);
     
    options = options || {};
   
   if (!this.app.properties[SERVER.IsBuilt]) 
     this.app.build();   
    
-  var that = this;
-  var server = new UdpSimple(options, this.app.properties[SERVER.Pipeline]);
- 
-  var unicastPromise = server.listen(unicastPort, unicastAddress)
-    .then(function(linfo){ 
-      that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
-      return linfo;
-    });
-    
-  if (options[SERVER.MulticastPort] && (options[SERVER.MulticastPort] !== unicastPort))
-  {
-      var server2 = new UdpSimple(options, this.app.properties[SERVER.Pipeline]);
-      server.multicastServer = server2;
-      
-      var multicastPromise = server2.listen(options[SERVER.MulticastPort])
-      .then(function(linfo){ 
-      that.app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort].push(linfo.port);
-      return linfo;
-      });
-      
-      return Promise.all(unicastPromise, multicastPromise).then(function(values){return server; });
-      
-  }
-  else
-     return unicastPromise.then(function(){return server; });
+  return new UdpComplex(options, this.app.properties[SERVER.Pipeline]);
 }
 
 module.exports = IopaUdp;

@@ -21,7 +21,6 @@ var util = require('util');
 var events = require('events');
 var iopaStream = require('iopa-common-stream');
 var net = require('net');
-var UdpClient = require('./udpClient.js');
 
 const IOPA = iopa.constants.IOPA,
   SERVER = iopa.constants.SERVER
@@ -46,8 +45,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * @constructor
  * @public
  */
-function UdpSimple(options, appFunc) {
-  _classCallCheck(this, UdpSimple);
+function UdpSimplex(options, appFunc) {
+  _classCallCheck(this, UdpSimplex);
 
   if (typeof options === 'function') {
     appFunc = options;
@@ -69,7 +68,7 @@ function UdpSimple(options, appFunc) {
   this._connections = {};
 }
 
-util.inherits(UdpSimple, events.EventEmitter)
+util.inherits(UdpSimplex, events.EventEmitter)
 
 /**
  * @method listen
@@ -80,7 +79,7 @@ util.inherits(UdpSimple, events.EventEmitter)
  * @returns {Promise} 
  * @public
  */
-UdpSimple.prototype.listen = function UdpSimple_listen(port, address, options) {
+UdpSimplex.prototype.listen = function UdpSimplex_listen(port, address, options) {
   options = options || {};
   iopa.util.shallow.merge(options, this._options);
 
@@ -148,11 +147,13 @@ UdpSimple.prototype.listen = function UdpSimple_listen(port, address, options) {
   });
 };
 
-Object.defineProperty(UdpSimple.prototype, SERVER.LocalPort, { get: function () { return this._port; } });
-Object.defineProperty(UdpSimple.prototype, SERVER.LocalAddress, { get: function () { return this._address; } });
-Object.defineProperty(UdpSimple.prototype, SERVER.MulticastAddress, { get: function () { return this._multicastAddress; } });
+Object.defineProperty(UdpSimplex.prototype, SERVER.LocalPort, { get: function () { return this._port; } });
+Object.defineProperty(UdpSimplex.prototype, SERVER.LocalAddress, { get: function () { return this._address; } });
+Object.defineProperty(UdpSimplex.prototype, SERVER.MulticastAddress, { get: function () { return this._multicastAddress; } });
+Object.defineProperty(UdpSimplex.prototype, "port", { get: function () { return this._port; } });
+Object.defineProperty(UdpSimplex.prototype, "address", { get: function () { return this._address; } });
 
-UdpSimple.prototype._onMessage = function UdpSimple_onMessage(msg, rinfo) {
+UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   var context = this._factory.createContext();
   context[IOPA.Method] = IOPA.METHODS.data;
  
@@ -196,7 +197,7 @@ UdpSimple.prototype._onMessage = function UdpSimple_onMessage(msg, rinfo) {
  * @public
  * @constructor
  */
-UdpSimple.prototype.connect = function UdpSimple_connect(urlStr, defaults) {
+UdpSimplex.prototype.connect = function UdpSimplex_connect(urlStr, defaults) {
   defaults = defaults || {};
   defaults[IOPA.Method] = defaults[IOPA.Method] || IOPA.METHODS.connect;
   var channelContext = this._factory.createRequest(urlStr, defaults);
@@ -221,7 +222,7 @@ UdpSimple.prototype.connect = function UdpSimple_connect(urlStr, defaults) {
   return new Promise(function (resolve, reject) {resolve(that._connect(channelContext));});   
 };
 
-UdpSimple.prototype._write = function UdpSimple_write(context, chunk, encoding, done) {
+UdpSimplex.prototype._write = function UdpSimplex_write(context, chunk, encoding, done) {
   if (typeof chunk === "string" || chunk instanceof String) {
     chunk = new Buffer(chunk, encoding);
   }
@@ -239,7 +240,7 @@ UdpSimple.prototype._write = function UdpSimple_write(context, chunk, encoding, 
 * @returns Promise<null>
 * @public
 */
-UdpSimple.prototype._fetch = function UdpSimple_Fetch(channelContext, transportContext, path, options, pipeline) {
+UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transportContext, path, options, pipeline) {
   if (typeof options === 'function') {
     pipeline = options;
     options = {};
@@ -272,7 +273,7 @@ UdpSimple.prototype._fetch = function UdpSimple_Fetch(channelContext, transportC
  * 
  * @public
  */
-UdpSimple.prototype._disconnect = function UdpSimple_disconnect(channelContext, err) {
+UdpSimplex.prototype._disconnect = function UdpSimplex_disconnect(channelContext, err) {
   if (channelContext[IOPA.CancelToken].isCancelled)
      return;
      
@@ -289,7 +290,7 @@ UdpSimple.prototype._disconnect = function UdpSimple_disconnect(channelContext, 
  * @returns {Promise()}
  * @public
  */
-UdpSimple.prototype.close = function UdpSimple_close() {
+UdpSimplex.prototype.close = function UdpSimplex_close() {
    for (var key in this._connections)
       this._disconnect(this._connections[key], null);
 
@@ -301,4 +302,4 @@ UdpSimple.prototype.close = function UdpSimple_close() {
    return Promise.resolve(null);
 };
 
-module.exports = UdpSimple;
+module.exports = UdpSimplex;

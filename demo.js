@@ -51,8 +51,10 @@ const iopa = require('iopa')
  if (!process.env.PORT)
   process.env.PORT = 5683;
 
- app.createServer("udp:", process.env.PORT, process.env.IP)
-   .then(function(server){
+ var server = app.createServer("udp:");
+ 
+ server.listen(process.env.PORT, process.env.IP)
+   .then(function(linfo){
       console.log("Server is on port " + server["server.LocalPort"] );
       return server.connect("coap://127.0.0.1");
    })
