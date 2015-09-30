@@ -250,15 +250,16 @@ UdpSimplex.prototype._write = function UdpSimplex_write(context, chunk, encoding
 *
 * @method fetch
 
-* @param path string representation of ://127.0.0.1/hello
+* @param path string representation of /hello
 * @param options object dictionary to override defaults
 * @param pipeline function(context):Promise  to call with context record
 * @returns Promise<null>
 * @public
 */
-UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transportContext, path, options, pipeline) {
+UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transportContext, path, options, prePipeline, postPipeline) {
   if (typeof options === 'function') {
-    pipeline = options;
+    postPipeline = prePipeline;
+    prePipeline = options;
     options = {};
   }
   
@@ -279,8 +280,14 @@ UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transpor
   context[SERVER.RawStream] = transportContext[SERVER.RawStream];
  
   return context.using(function () {
+    if (prePipeline)
+       prePipeline(context);
+       
     var value = channelContext[SERVER.Dispatch](context);
-    pipeline(context);
+    
+    if (postPipeline)
+       postPipeline(context);
+       
     return value;
   });
 };
