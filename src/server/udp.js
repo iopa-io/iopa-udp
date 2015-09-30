@@ -63,7 +63,7 @@ IopaUdp.prototype._appCreateServer = function(next, transport, options){
   var server = new UdpComplex(options, this.app.properties[SERVER.Pipeline]);
   var that = this;
   server.once("close", function(){that._servers.splice(that._servers.indexOf(server),1); server = null; });
-  this._servers[server[SERVER.Id]] = server;
+  this._servers.push(server);
   return server;
 }
 

@@ -405,3 +405,146 @@ describe('#UDP IOPA Multicast Only ()', function() {
 });
 
 
+describe('#UDP IOPA Multicast bound to Existing Unicast Server ()', function() {
+       var app, port, _unicast, _multicast;
+       var events = new Events.EventEmitter();
+       var data = new BufferList();
+        
+       before(function(done){
+        
+        //  serverPipeline 
+          app = new iopa.App();
+          app.use(udp);
+          
+          app.use(function(channelContext, next){
+            channelContext["server.RawStream"].on("data", function(chunk){
+               events.emit("test.Data", chunk);
+               data.append(chunk);
+            });
+             return next();  
+          });
+            
+        if (!process.env.PORT)
+          process.env.PORT = 5683;
+          
+         _unicast = app.createServer("udp:", "unicast");
+         _multicast = app.createServer("udp:", "multicast");
+         
+        _unicast.listen().then(function(linfo){
+         
+           return _multicast.listen(process.env.PORT, process.env.IP, {
+               "server.MulticastPort": process.env.PORT, 
+               "server.MulticastAddress": "224.0.1.187",
+               "server.UnicastServer": _unicast } );
+        })
+        .then(function(linfo){
+              port = _multicast["server.LocalPort"];
+                  done();
+           });
+      });
+      
+    it('server should listen', function() {
+             console.log("Unicast server is on port " + _unicast["server.LocalPort"]);
+             console.log("Multicast server is on port " + _multicast["server.LocalPort"]);
+              });
+    
+    it('client should connect and server should receive client packets', function(done) {
+       _multicast.connect("coap://224.0.1.187")
+       .then(function (client) {
+                    console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
+            events.on("test.Data", function (data) {
+                    data.toString().should.equal('Hello World');
+                    done();
+                });
+                client["server.Fetch"]("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                        try{
+                        context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].write("Hello World");
+                         } catch (ex) {
+                            console.log(ex);
+                            return Promise.reject(ex);
+                        }
+                    });
+            })
+    });
+    
+    it('server should close', function() {
+        _multicast.close();
+        _unicast.close();
+    });
+ 
+    
+});
+
+
+describe('#UDP IOPA Multicast not bound to Existing Unicast Server ()', function() {
+       var app, port, _unicast, _multicast;
+       var events = new Events.EventEmitter();
+       var data = new BufferList();
+        
+       before(function(done){
+        
+        //  serverPipeline 
+          app = new iopa.App();
+          app.use(udp);
+          
+          app.use(function(channelContext, next){
+            channelContext["server.RawStream"].on("data", function(chunk){
+               events.emit("test.Data", chunk);
+               data.append(chunk);
+            });
+             return next();  
+          });
+            
+        if (!process.env.PORT)
+          process.env.PORT = 5683;
+          
+         _unicast = app.createServer("udp:");
+         _multicast = app.createServer("udp:");
+         
+        _unicast.listen().then(function(linfo){
+         
+           return _multicast.listen(process.env.PORT, process.env.IP, {"server.MulticastPort": process.env.PORT, "server.MulticastAddress": "224.0.1.187"} );
+        })
+        .then(function(linfo){
+              port = _multicast["server.LocalPort"];
+                  done();
+           });
+      });
+      
+    it('server should listen', function() {
+             console.log("Unicast server is on port " + _unicast["server.LocalPort"]);
+             console.log("Multicast server is on port " + _multicast["server.LocalPort"]);
+              });
+    
+    it('client should connect and server should receive client packets', function(done) {
+       _multicast.connect("coap://224.0.1.187")
+       .then(function (client) {
+                    console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
+            events.on("test.Data", function (data) {
+                    data.toString().should.equal('Hello World');
+                    done();
+                });
+                client["server.Fetch"]("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                        try{
+                        context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].write("Hello World");
+                         } catch (ex) {
+                            console.log(ex);
+                            return Promise.reject(ex);
+                        }
+                    });
+            })
+    });
+    
+    it('server should close', function() {
+        _multicast.close();
+        _unicast.close();
+    });
+ 
+    
+});

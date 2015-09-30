@@ -61,6 +61,7 @@ function UdpComplex_serverListen(server, next, unicastPort, unicastAddress, mult
  
       var server2 = new UdpSimplex(server.options, server.appFunc);
       server.multicastServer = server2;
+      server2[SERVER.RawTransport] = this[SERVER.RawTransport];
       
       var multicastPromise = server2.listen(multicastOptions[SERVER.MulticastPort], null, multicastOptions)
       .then(function(linfo){ 
@@ -68,12 +69,14 @@ function UdpComplex_serverListen(server, next, unicastPort, unicastAddress, mult
       });
       
       return Promise.all([unicastPromise, multicastPromise]).then(function(values){return values[0]});
+  } else if (multicastOptions[SERVER.MulticastPort] && multicastOptions[SERVER.UnicastServer])
+  {
+      this[SERVER.RawTransport] = multicastOptions[SERVER.UnicastServer][SERVER.RawTransport];
+      return next(unicastPort, unicastAddress, multicastOptions) 
   }
   else
-     return next(unicastPort, unicastAddress, multicastOptions)
-      .then(function(linfo){ 
-        return linfo;
-      });
+     return next(unicastPort, unicastAddress, multicastOptions);
+
 }
 
 function UdpComplex_serverClose(server, next){
@@ -82,5 +85,43 @@ function UdpComplex_serverClose(server, next){
     else
       return next();
 }
+
+/**
+* Fetches a new IOPA Request using a UDP Url including host and port name
+*
+* @method fetch
+
+* @param path string representation of ://127.0.0.1/hello
+* @param options object dictionary to override defaults
+* @param pipeline function(context):Promise  to call with context record
+* @returns Promise<null>
+* @public
+*/
+UdpComplex.prototype._fetchBindUnicast = function UdpSimplex_Fetch(channelContext, ignore, path, options, pipeline) {
+  if (typeof options === 'function') {
+    pipeline = options;
+    options = {};
+  }
+  
+  var urlStr = channelContext[IOPA.Scheme] +
+    "//" +
+    channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort] +
+    channelContext[IOPA.PathBase] +
+    channelContext[IOPA.Path] + path;
+  
+  var context = channelContext[SERVER.Factory].createRequest(urlStr, options);
+  channelContext[SERVER.Factory].mergeCapabilities(context, channelContext);
+  context[SERVER.SessionId] = channelContext[SERVER.SessionId];
+
+  context[SERVER.LocalAddress] = transportContext[SERVER.LocalAddress];
+  context[SERVER.LocalPort] = transportContext[SERVER.LocalPort];
+  context[SERVER.RawStream] = transportContext[SERVER.RawStream];
+ 
+  return context.using(function () {
+    var value = channelContext[SERVER.Dispatch](context);
+    pipeline(context);
+    return value;
+  });
+};
 
 module.exports = UdpComplex;

@@ -33,6 +33,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * IOPA UDP SIMPLEX SERVER AND CLIENT ON SAME PORT 
  * Unicast or Multicast+Unicast
  * *********************************************************************** */
+var seq = 0;
 
 /**
  * Representes UDP Server
@@ -55,7 +56,16 @@ function UdpSimplex(options, appFunc) {
 
   events.EventEmitter.call(this);
 
-  options = options || {};
+  if (typeof options == 'string'){
+    this._id = options;
+    options = {};
+    options[SERVER.Id] = this._id  
+  } else
+  {
+     options = options || {};
+     this._id = options[SERVER.Id] || (seq++).toString();
+  }
+    
   this._options = options;
   this._factory = new iopa.Factory(options);
 
@@ -152,11 +162,18 @@ Object.defineProperty(UdpSimplex.prototype, SERVER.LocalAddress, { get: function
 Object.defineProperty(UdpSimplex.prototype, SERVER.MulticastAddress, { get: function () { return this._multicastAddress; } });
 Object.defineProperty(UdpSimplex.prototype, "port", { get: function () { return this._port; } });
 Object.defineProperty(UdpSimplex.prototype, "address", { get: function () { return this._address; } });
+Object.defineProperty(UdpSimplex.prototype, SERVER.RawTransport, { 
+  get: function () { return this; },
+  set: function(value) {   
+    this._write = value._write.bind(value);
+    this.connect = value.connect.bind(value);
+    this._fetch = value._fetch.bind(value);
+     } });
 
 UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   var context = this._factory.createContext();
   context[IOPA.Method] = IOPA.METHODS.data;
- 
+  context[SERVER.Id] = this._id;
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = rinfo.address;
   context[SERVER.RemotePort] = rinfo.port;
@@ -167,16 +184,16 @@ UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
-  context[SERVER.RawTransport] = this._udp;   
  
   var response = context.response;
+   response[SERVER.Id] = this._id;
+ 
   response[SERVER.TLS] = context[SERVER.TLS];
   response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
   response[SERVER.RemotePort] = context[SERVER.RemotePort];
   response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
   response[SERVER.LocalPort] = context[SERVER.LocalPort];
   response[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, context.response));
-  response[SERVER.RawTransport] = this._udp; 
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
@@ -186,7 +203,6 @@ UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   context.using(this._appFunc);
 }
 
- 
 /**
  * Creates a new IOPA Request using a UDP Url including host and port name
  *
@@ -201,8 +217,8 @@ UdpSimplex.prototype.connect = function UdpSimplex_connect(urlStr, defaults) {
   defaults = defaults || {};
   defaults[IOPA.Method] = defaults[IOPA.Method] || IOPA.METHODS.connect;
   var channelContext = this._factory.createRequest(urlStr, defaults);
-
-  channelContext[SERVER.RawTransport] = this._udp;   
+  channelContext[SERVER.Id] = this._id;
+ 
   channelContext[SERVER.LocalPort] = this._port;
   channelContext[SERVER.LocalAddress] = this._address;
   
@@ -226,7 +242,7 @@ UdpSimplex.prototype._write = function UdpSimplex_write(context, chunk, encoding
   if (typeof chunk === "string" || chunk instanceof String) {
     chunk = new Buffer(chunk, encoding);
   }
-  context[SERVER.RawTransport].send(chunk, 0, chunk.length, context[SERVER.RemotePort], context[SERVER.RemoteAddress], done);
+  this._udp.send(chunk, 0, chunk.length, context[SERVER.RemotePort], context[SERVER.RemoteAddress], done);
 }
 
 /**
@@ -253,6 +269,8 @@ UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transpor
     channelContext[IOPA.Path] + path;
   
   var context = channelContext[SERVER.Factory].createRequest(urlStr, options);
+  channelContext[SERVER.Id] = this._id;
+ 
   channelContext[SERVER.Factory].mergeCapabilities(context, channelContext);
   context[SERVER.SessionId] = channelContext[SERVER.SessionId];
 
