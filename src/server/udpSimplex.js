@@ -291,13 +291,15 @@ UdpSimplex.prototype._disconnect = function UdpSimplex_disconnect(channelContext
  * @public
  */
 UdpSimplex.prototype.close = function UdpSimplex_close() {
-   for (var key in this._connections)
+  
+    for (var key in this._connections)
       this._disconnect(this._connections[key], null);
 
    this._connections = {};
   
    this._udp.close();
-   
+   this.emit("close");
+  
    this._udp = undefined;
    return Promise.resolve(null);
 };

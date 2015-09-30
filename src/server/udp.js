@@ -45,8 +45,10 @@ function IopaUdp(app) {
    app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort] =[];
 
    app.createServer = this._appCreateServer.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
+   app.getServer = this._appGetServer.bind(this, app.getServer || function(){ return null; });
   
    this.app = app; 
+   this._servers = [];
  }
 
 IopaUdp.prototype._appCreateServer = function(next, transport, options){
@@ -58,7 +60,52 @@ IopaUdp.prototype._appCreateServer = function(next, transport, options){
   if (!this.app.properties[SERVER.IsBuilt]) 
     this.app.build();   
    
-  return new UdpComplex(options, this.app.properties[SERVER.Pipeline]);
+  var server = new UdpComplex(options, this.app.properties[SERVER.Pipeline]);
+  var that = this;
+  server.once("close", function(){that._servers.splice(that._servers.indexOf(server),1); server = null; });
+  this._servers[server[SERVER.Id]] = server;
+  return server;
+}
+
+IopaUdp.prototype._appGetServer = function(next, transport, query){
+  if (transport !== "udp:")
+    return next(transport, query);
+    
+   query = query || {};
+  
+   if (!query)
+     return this._servers[0];
+  
+   if (typeof query == 'number')
+     return this._appGetServerByPort(query);
+     
+    if (typeof query == 'string')
+     return this._appGetServerById(query);
+   
+  return null;
+}
+
+IopaUdp.prototype._appGetServerByPort = function(port){
+  
+  this._servers.forEach(function(server){
+    if (server[SERVER.LocalPort] == port)
+      return server;
+      
+    if (server.multicastserver && server.multicastserver[SERVER.LocalPort] == port)
+      return server;
+  });
+  
+  return null;
+}
+
+IopaUdp.prototype._appGetServerById = function(id){
+  
+  this._servers.forEach(function(server){
+    if (server[SERVER.Id] == id)
+      return server;
+  });
+  
+  return null;
 }
 
 module.exports = IopaUdp;

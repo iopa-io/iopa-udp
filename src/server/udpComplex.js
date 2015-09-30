@@ -51,8 +51,8 @@ util.inherits(UdpComplex, UdpSimplex);
 
 function UdpComplex_serverListen(server, next, unicastPort, unicastAddress, multicastOptions){
   multicastOptions = multicastOptions || {};
-    
-  if (multicastOptions[SERVER.MulticastPort] && (multicastOptions[SERVER.MulticastPort] !== unicastPort))
+  
+   if (multicastOptions[SERVER.MulticastPort] && (multicastOptions[SERVER.MulticastPort] !== unicastPort))
   {
       var unicastPromise = next(unicastPort, unicastAddress)
       .then(function(linfo){ 
