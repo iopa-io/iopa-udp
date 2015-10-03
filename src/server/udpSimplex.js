@@ -179,7 +179,7 @@ UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   context[SERVER.RemotePort] = rinfo.port;
   context[SERVER.LocalAddress] = this._address; 
   context[SERVER.LocalPort] = this._port;  
-  context[SERVER.RawStream] =  new iopaStream.IncomingStream();
+  context[SERVER.RawStream] =  new iopaStream.IncomingMessageStream();
   context[SERVER.RawStream].append(msg);
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;

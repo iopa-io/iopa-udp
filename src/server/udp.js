@@ -85,27 +85,30 @@ IopaUdp.prototype._appGetServer = function(next, transport, query){
   return null;
 }
 
-IopaUdp.prototype._appGetServerByPort = function(port){
-  
-  this._servers.forEach(function(server){
-    if (server[SERVER.LocalPort] == port)
-      return server;
-      
-    if (server.multicastserver && server.multicastserver[SERVER.LocalPort] == port)
-      return server;
+IopaUdp.prototype._appGetServerByPort = function (port) {
+  var _server = null;
+  this._servers.some(function (server) {
+    if ((server[SERVER.LocalPort] == port)
+      || (server.multicastserver && server.multicastserver[SERVER.LocalPort] == port)) {
+      _server = server;
+      return true;
+    }
   });
-  
-  return null;
+
+  return _server;
 }
 
-IopaUdp.prototype._appGetServerById = function(id){
-  
-  this._servers.forEach(function(server){
-    if (server[SERVER.Id] == id)
-      return server;
+
+IopaUdp.prototype._appGetServerById = function (id) {
+  var _server = null;
+  this._servers.some(function (server) {
+    if (server[SERVER.Id] == id) {
+      _server = server;
+      return true;
+    }
   });
-  
-  return null;
+
+  return _server;
 }
 
 module.exports = IopaUdp;
