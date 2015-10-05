@@ -280,16 +280,20 @@ UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transpor
   context[SERVER.RawStream] = transportContext[SERVER.RawStream];
  
   return context.using(function () {
-    if (prePipeline)
-       prePipeline(context);
-       
-    var value = channelContext[SERVER.Dispatch](context);
-    
-    if (postPipeline)
-       postPipeline(context);
-       
-    return value;
-  });
+      if (prePipeline)
+        prePipeline(context);
+        
+      var value = channelContext[SERVER.Dispatch](context);
+      
+      if (postPipeline)
+      return  value.then
+      (function(){
+          return postPipeline(context);
+      })
+        
+      else return value;
+    });
+  
 };
 
 /**
