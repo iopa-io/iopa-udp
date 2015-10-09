@@ -66,17 +66,17 @@ describe('#UdpServer()', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
+                var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+
             })
     });
     
@@ -161,18 +161,17 @@ describe('#UDP IOPA Middleware()', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
+                var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
     });
     
     it('server should close', function() {
@@ -257,18 +256,17 @@ describe('#UDP IOPA Unicast+Multicast (multicast)', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
+               var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
     });
     
     it('server should close', function() {
@@ -320,20 +318,19 @@ describe('#UDP IOPA Unicast+Multicast (unicast)', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
-    });
-    
+                var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
+   });
+
     it('server should close', function() {
         _server.close();
     });
@@ -377,24 +374,23 @@ describe('#UDP IOPA Multicast Only ()', function() {
     
     it('client should connect and server should receive client packets', function(done) {
        _server.connect("coap://224.0.1.187")
-       .then(function (client) {
-                    console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
-            events.on("test.Data", function (data) {
+            .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
+                events.on("test.Data", function (data) {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
+                var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
     });
     
     it('server should close', function() {
@@ -449,25 +445,24 @@ describe('#UDP IOPA Multicast bound to Existing Unicast Server ()', function() {
               });
     
     it('client should connect and server should receive client packets', function(done) {
-       _multicast.connect("coap://224.0.1.187")
-       .then(function (client) {
-                    console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
-            events.on("test.Data", function (data) {
+        _multicast.connect("coap://224.0.1.187")
+            .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
+                events.on("test.Data", function (data) {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
+               var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
     });
     
     it('server should close', function() {
@@ -519,26 +514,25 @@ describe('#UDP IOPA Multicast not bound to Existing Unicast Server ()', function
              console.log("Multicast server is on port " + _multicast["server.LocalPort"]);
               });
     
-    it('client should connect and server should receive client packets', function(done) {
-       _multicast.connect("coap://224.0.1.187")
-       .then(function (client) {
-                    console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
-            events.on("test.Data", function (data) {
+    it('client should connect and server should receive client packets', function (done) {
+        _multicast.connect("coap://224.0.1.187")
+            .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"] + " connecting to " + client["server.RemotePort"]);
+                events.on("test.Data", function (data) {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello World");
-                         } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
-            })
+               var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello World");
+                    return context.dispatch();
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+           })
     });
     
     it('server should close', function() {

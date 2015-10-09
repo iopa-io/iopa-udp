@@ -70,8 +70,9 @@ function UdpSimplex(options, appFunc) {
   this._factory = new iopa.Factory(options);
 
   this._appFunc = appFunc;
-  this._connect = this._appFunc.connect || function (context) { return Promise.resolve(context) };
-  this._dispatch = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
+  this._connectFunc = this._appFunc.connect || function (context) { return Promise.resolve(context) };
+  this._createFunc = this._appFunc.create || function (context) { return context };
+  this._dispatchFunc = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
 
   this._udp = null;
    
@@ -167,8 +168,7 @@ Object.defineProperty(UdpSimplex.prototype, SERVER.RawTransport, {
   set: function(value) {   
     this._write = value._write.bind(value);
     this.connect = value.connect.bind(value);
-    this._fetch = value._fetch.bind(value);
-     } });
+      } });
 
 UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   var context = this._factory.createContext();
@@ -197,8 +197,8 @@ UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
-  context[SERVER.Fetch] = this._fetch.bind(this, context, response);
-  context[SERVER.Dispatch] = this._dispatch;
+  context.create = this._create.bind(this, context, response);
+  context.dispatch = this._dispatchFunc;
 
   context.using(this._appFunc);
 }
@@ -224,8 +224,9 @@ UdpSimplex.prototype.connect = function UdpSimplex_connect(urlStr, defaults) {
   
   channelContext[SERVER.OriginalUrl] = urlStr;
   
-  channelContext[SERVER.Fetch] = this._fetch.bind(this, channelContext, channelContext);
-  channelContext[SERVER.Dispatch] = this._dispatch;
+  channelContext.create = this._create.bind(this, channelContext, channelContext);
+  channelContext.dispatch = this._dispatchFunc;
+    
   channelContext[SERVER.Disconnect] = this._disconnect.bind(this, channelContext);
 
   channelContext[SERVER.RawStream] = new iopaStream.OutgoingStreamTransform(this._write.bind(this, channelContext));
@@ -235,7 +236,7 @@ UdpSimplex.prototype.connect = function UdpSimplex_connect(urlStr, defaults) {
   this._connections[channelContext[SERVER.SessionId]] = channelContext;
  
   var that = this;
-  return new Promise(function (resolve, reject) {resolve(that._connect(channelContext));});   
+  return new Promise(function (resolve, reject) {resolve(that._connectFunc(channelContext));});   
 };
 
 UdpSimplex.prototype._write = function UdpSimplex_write(context, chunk, encoding, done) {
@@ -246,28 +247,23 @@ UdpSimplex.prototype._write = function UdpSimplex_write(context, chunk, encoding
 }
 
 /**
-* Fetches a new IOPA Request using a UDP Url including host and port name
+* Create a new IOPA Request, optionally using a UDP Url 
 *
-* @method fetch
+* @method create
 
 * @param path string representation of /hello
 * @param options object dictionary to override defaults
-* @param pipeline function(context):Promise  to call with context record
-* @returns Promise<null>
+* @returns context
 * @public
 */
-UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transportContext, path, options, prePipeline, postPipeline) {
-  if (typeof options === 'function') {
-    postPipeline = prePipeline;
-    prePipeline = options;
-    options = {};
-  }
-  
+UdpSimplex.prototype._create = function UdpSimplex_create(channelContext, transportContext, path, options) {
   var urlStr = channelContext[IOPA.Scheme] +
     "//" +
     channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort] +
     channelContext[IOPA.PathBase] +
-    channelContext[IOPA.Path] + path;
+    channelContext[IOPA.Path];
+    
+  if (path) urlStr += path;
   
   var context = channelContext[SERVER.Factory].createRequest(urlStr, options);
   channelContext[SERVER.Id] = this._id;
@@ -278,22 +274,9 @@ UdpSimplex.prototype._fetch = function UdpSimplex_Fetch(channelContext, transpor
   context[SERVER.LocalAddress] = transportContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = transportContext[SERVER.LocalPort];
   context[SERVER.RawStream] = transportContext[SERVER.RawStream];
- 
-  return context.using(function () {
-      if (prePipeline)
-        prePipeline(context);
-        
-      var value = channelContext[SERVER.Dispatch](context);
-      
-      if (postPipeline)
-      return  value.then
-      (function(){
-          return postPipeline(context);
-      })
-        
-      else return value;
-    });
+  context.dispatch = this._dispatchFunc.bind(this, context);
   
+  return  this._createFunc(context);
 };
 
 /**
