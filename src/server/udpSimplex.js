@@ -274,7 +274,14 @@ UdpSimplex.prototype._create = function UdpSimplex_create(channelContext, transp
   context[SERVER.LocalAddress] = transportContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = transportContext[SERVER.LocalPort];
   context[SERVER.RawStream] = transportContext[SERVER.RawStream];
-  context.dispatch = this._dispatchFunc.bind(this, context);
+  
+  var that = this;
+  context.dispatch = function(dispose) {
+    if (dispose)
+      return that._dispatchFunc(context).then(context.dispose)
+   else
+      return that._dispatchFunc(context);
+  }
   
   return  this._createFunc(context);
 };
