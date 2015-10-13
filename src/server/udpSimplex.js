@@ -199,6 +199,7 @@ UdpSimplex.prototype._onMessage = function UdpSimplex_onMessage(msg, rinfo) {
 
   context.create = this._create.bind(this, context, response);
   context.dispatch = this._dispatchFunc;
+  response.dispatch = this._dispatchFunc.bind(this, response);
 
   context.using(this._appFunc);
 }
