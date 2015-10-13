@@ -54,7 +54,7 @@ const iopa = require('iopa'),
   
   app.dispatchuse(function(context, next){
     console.log("DISPATCH");
-    context["iopa.Body"].pipe(context["server.RawStream"])
+    context["iopa.Body"].pipe(context["server.RawStream"]);
     return next();
   });
    
