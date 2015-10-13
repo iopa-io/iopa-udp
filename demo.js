@@ -17,9 +17,10 @@
 
 global.Promise = require('bluebird');
 
-const iopa = require('iopa')
-    , IopaUdp = require('./index.js')
-    , util = require('util');
+const iopa = require('iopa'),
+    iopaStream = require('iopa-common-stream'),
+    IopaUdp = require('./index.js'),
+    util = require('util');
 
  //  serverPipeline 
   var app = new iopa.App();
@@ -43,8 +44,17 @@ const iopa = require('iopa')
     return next();
   });
   
+      
+ app.createuse(function(context, next){
+    console.log("CREATE");
+    context["iopa.Body"] = new iopaStream.OutgoingStream();
+    context["iopa.Body"].once("finish", context.dispatch.bind(this, context));  
+    return next();
+  });
+  
   app.dispatchuse(function(context, next){
     console.log("DISPATCH");
+    context["iopa.Body"].pipe(context["server.RawStream"])
     return next();
   });
    
@@ -60,9 +70,6 @@ const iopa = require('iopa')
    })
    .then(function(client){
       console.log("Client is on port " + client["server.LocalPort"]);
-       var options = { "iopa.Body": "Hello World\n" }
-       var context = client.create("/", options);
-       context["server.RawStream"].write(context["iopa.Body"]);
-       return context.dispatch();
+       context = client.create("/").end("Hello World\n");
     });
    
